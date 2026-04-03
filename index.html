@@ -21,32 +21,13 @@
             padding: 10px 20px; background: rgba(0,0,0,0.8);
             border-bottom: 2px solid #FFD700;
         }
-        #game-container {
-            flex: 1; display: flex; justify-content: center; align-items: center;
-            position: relative;
-        }
-        canvas {
-            border: 3px solid #FFD700;
-            background: rgba(0, 0, 0, 0.9);
-            max-height: 65vh;
-        }
-        .controls {
-            display: grid; grid-template-columns: repeat(3, 1fr);
-            gap: 5px; padding: 10px; background: rgba(0,0,0,0.9);
-        }
-        .btn {
-            background: #FFD700; color: #000; border: none;
-            padding: 15px; font-weight: bold; border-radius: 5px;
-            font-size: 20px; touch-action: manipulation;
-        }
-        #shop-bar {
-            height: 80px; background: #111; border-top: 1px solid #FFD700;
-            display: flex; align-items: center; padding: 0 10px; gap: 20px; overflow-x: auto;
-        }
-        .skin-item {
-            width: 45px; height: 45px; border: 2px solid #444;
-            background-size: cover; border-radius: 5px;
-        }
+        #game-container { flex: 1; display: flex; justify-content: center; align-items: center; }
+        canvas { border: 3px solid #FFD700; background: rgba(0, 0, 0, 0.9); max-height: 60vh; }
+        .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 10px; background: rgba(0,0,0,0.9); }
+        .btn { background: #FFD700; color: #000; border: none; padding: 15px; font-weight: bold; border-radius: 5px; font-size: 20px; touch-action: manipulation; }
+        #shop-bar { height: 80px; background: #111; border-top: 1px solid #FFD700; display: flex; align-items: center; padding: 0 10px; gap: 20px; overflow-x: auto; }
+        .skin-btn { display: flex; flex-direction: column; align-items: center; }
+        .skin-item { width: 45px; height: 45px; border: 2px solid #444; background-size: cover; border-radius: 5px; }
         .active .skin-item { border-color: #FFD700; box-shadow: 0 0 10px #FFD700; }
         .label { font-size: 10px; text-align: center; color: #fff; margin-top: 2px; }
     </style>
@@ -101,7 +82,6 @@
             for(r=0; r<ROW; r++){ for(c=0; c<COL; c++){ drawSquare(c,r,board[r][c]); }}
         }
 
-        // Pièces avec couleurs
         const PIECES = [
             [[[1,1,1,1]],[[1],[1],[1],[1]], "cyan"],
             [[[1,1],[1,1]], "yellow"],
@@ -181,7 +161,9 @@
         drop();
 
         function changeSkin(file, el) {
-            document.body.style.backgroundImage = "url('public/skins/" + file + "')";
+            // Utilise le chemin exact visible sur ta capture 1000009941.jpg
+            const path = "public/skins/" + file;
+            document.body.style.backgroundImage = "url('" + path + "')";
             document.querySelectorAll('.skin-btn').forEach(btn => btn.classList.remove('active'));
             el.classList.add('active');
         }
