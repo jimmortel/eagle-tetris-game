@@ -17,55 +17,62 @@
             transition: background-image 0.5s ease;
         }
 
+        #ui-top {
+            display: flex; justify-content: space-between;
+            padding: 10px 20px; background: rgba(0,0,0,0.7);
+            border-bottom: 2px solid #FFD700;
+        }
+
         #game-container {
-            flex: 1; display: flex; flex-direction: column;
-            justify-content: center; align-items: center;
-            position: relative;
+            flex: 1; display: flex; justify-content: center; align-items: center;
+            position: relative; padding: 10px;
         }
 
         canvas {
             border: 4px solid #FFD700;
             background: rgba(0, 0, 0, 0.9);
             box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-            max-height: 70vh;
+            max-height: 60vh; width: auto;
         }
 
-        /* Contrôles Mobile */
         .controls {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px; padding: 10px;
-            background: rgba(0,0,0,0.8);
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 8px; padding: 10px; background: rgba(0,0,0,0.8);
         }
 
         .btn {
             background: #FFD700; color: #000;
             border: none; padding: 15px;
             font-weight: bold; border-radius: 5px;
-            text-align: center; touch-action: manipulation;
+            text-align: center; font-size: 18px;
+            touch-action: manipulation;
         }
 
         #shop-bar {
-            height: 80px; background: rgba(0, 0, 0, 0.9);
+            height: 90px; background: rgba(0, 0, 0, 0.9);
             border-top: 2px solid #FFD700;
             display: flex; align-items: center;
-            padding: 5px 15px; gap: 15px; overflow-x: auto;
+            padding: 0 15px; gap: 15px; overflow-x: auto;
         }
 
+        .skin-card { display: flex; flex-direction: column; align-items: center; }
         .skin-item {
-            min-width: 50px; height: 50px;
+            width: 50px; height: 50px;
             border: 2px solid #444; border-radius: 5px;
             background-size: cover; cursor: pointer;
         }
-
         .skin-item.active { border-color: #FFD700; box-shadow: 0 0 10px #FFD700; }
-        .label { font-size: 8px; text-align: center; color: #fff; }
+        .label { font-size: 10px; margin-top: 4px; color: #fff; }
     </style>
 </head>
 <body>
 
+    <div id="ui-top">
+        <div style="font-size: 1.2em;">EAGLE 🦅</div>
+        <div style="font-size: 1.2em;">SCORE: <span id="score">0</span></div>
+    </div>
+
     <div id="game-container">
-        <h2 style="margin: 10px 0;">EAGLE TETRIS 🦅</h2>
         <canvas id="tetris"></canvas>
     </div>
 
@@ -73,17 +80,15 @@
         <button class="btn" onclick="p.moveLeft()">←</button>
         <button class="btn" onclick="p.rotate()">ROT</button>
         <button class="btn" onclick="p.moveRight()">→</button>
-        <div style="grid-column: span 3;">
-            <button class="btn" style="width:100%" onclick="p.moveDown()">VITE ↓</button>
-        </div>
+        <button class="btn" style="grid-column: span 3;" onclick="p.moveDown()">VITE ↓</button>
     </div>
 
     <div id="shop-bar">
-        <div onclick="changeSkin('gold.webp', this)">
+        <div class="skin-card" onclick="changeSkin('gold.webp', this)">
             <div class="skin-item active" style="background-image: url('public/skins/gold.webp');"></div>
             <div class="label">GOLD</div>
         </div>
-        <div onclick="changeSkin('nebula.jpg', this)">
+        <div class="skin-card" onclick="changeSkin('nebula.jpg', this)">
             <div class="skin-item" style="background-image: url('public/skins/nebula.jpg');"></div>
             <div class="label">NEBULA</div>
         </div>
@@ -92,13 +97,16 @@
     <script>
         const cvs = document.getElementById("tetris");
         const ctx = cvs.getContext("2d");
+        const scoreElement = document.getElementById("score");
         const SQ = 20; const ROW = 20; const COL = 10;
         cvs.width = COL * SQ; cvs.height = ROW * SQ;
+
+        let score = 0;
 
         function drawSquare(x, y, color) {
             ctx.fillStyle = color;
             ctx.fillRect(x*SQ, y*SQ, SQ, SQ);
-            ctx.strokeStyle = "rgba(0,0,0,0.3)";
+            ctx.strokeStyle = "rgba(255,215,0,0.1)";
             ctx.strokeRect(x*SQ, y*SQ, SQ, SQ);
         }
 
@@ -110,9 +118,11 @@
         }
 
         const PIECES = [
-            [[[1,1,1,1]],[[1],[1],[1],[1]]], // I
-            [[[1,1],[1,1]]], // O
-            [[[0,1,0],[1,1,1]],[[1,0],[1,1],[1,0]],[[1,1,1],[0,1,0]],[[0,1],[1,1],[0,1]]] // T
+            [[[1,1,1,1]],[[1],[1],[1],[1]]], 
+            [[[1,1],[1,1]]], 
+            [[[0,1,1],[1,1,0]],[[1,0],[1,1],[0,1]]], 
+            [[[1,1,0],[0,1,1]],[[0,1],[1,1],[1,0]]],
+            [[[0,1,0],[1,1,1]],[[1,0],[1,1],[1,0]],[[1,1,1],[0,1,0]],[[0,1],[1,1],[0,1]]]
         ];
 
         function Piece(tetromino, color) {
@@ -132,15 +142,17 @@
         Piece.prototype.moveDown = function(){
             if(!this.collision(0,1,this.active)){ this.y++; }
             else { this.lock(); p = randomPiece(); }
+            drawBoard(); p.draw();
         }
 
-        Piece.prototype.moveRight = function(){ if(!this.collision(1,0,this.active)){ this.x++; }}
-        Piece.prototype.moveLeft = function(){ if(!this.collision(-1,0,this.active)){ this.x--; }}
+        Piece.prototype.moveRight = function(){ if(!this.collision(1,0,this.active)){ this.x++; drawBoard(); p.draw(); }}
+        Piece.prototype.moveLeft = function(){ if(!this.collision(-1,0,this.active)){ this.x--; drawBoard(); p.draw(); }}
         Piece.prototype.rotate = function(){
             let nextPattern = this.tetromino[(this.index + 1) % this.tetromino.length];
             if(!this.collision(0,0,nextPattern)){
                 this.index = (this.index + 1) % this.tetromino.length;
                 this.active = nextPattern;
+                drawBoard(); p.draw();
             }
         }
 
@@ -161,30 +173,30 @@
             for(r=0; r<this.active.length; r++){
                 for(c=0; c<this.active[r].length; c++){
                     if(!this.active[r][c]) continue;
-                    if(this.y + r < 0) { alert("Game Over"); board = board.map(r => r.fill("black")); break; }
+                    if(this.y + r < 0) { alert("Game Over"); board = board.map(r => r.fill("black")); score = 0; break; }
                     board[this.y+r][this.x+c] = this.color;
                 }
             }
-            // Clear lines
             for(r=0; r<ROW; r++){
                 if(board[r].every(v => v !== "black")){
                     board.splice(r, 1); board.unshift(new Array(COL).fill("black"));
+                    score += 10;
                 }
             }
-            drawBoard();
+            scoreElement.innerHTML = score;
         }
 
         function randomPiece(){ return new Piece(PIECES[Math.floor(Math.random()*PIECES.length)], "#FFD700"); }
         let p = randomPiece();
 
-        function drop(){ p.moveDown(); drawBoard(); p.draw(); setTimeout(drop, 1000); }
+        function drop(){ p.moveDown(); setTimeout(drop, 1000); }
         drop();
 
-        function changeSkin(f, e) {
-            document.body.style.backgroundImage = `url('public/skins/${f}')`;
-            document.querySelectorAll('.skin-item').forEach(i => i.classList.remove('active'));
-            e.querySelector('.skin-item').classList.add('active');
+        function changeSkin(fileName, element) {
+            document.body.style.backgroundImage = "url('public/skins/" + fileName + "')";
+            document.querySelectorAll('.skin-item').forEach(item => item.classList.remove('active'));
+            element.querySelector('.skin-item').classList.add('active');
         }
     </script>
 </body>
-</html>
+    </html>
