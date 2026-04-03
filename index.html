@@ -1,172 +1,99 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Eagle Tetris - $TALONS Edition</title>
-    <style>
-        body {
-            margin: 0; padding: 0;
-            background-color: #000;
-            color: #FFD700;
-            font-family: sans-serif;
-            display: flex; flex-direction: column;
-            height: 100vh; overflow: hidden;
-            background-image: url('public/skins/gold.webp');
-            background-size: cover; background-position: center;
-            transition: background-image 0.3s ease;
-        }
-        #ui-top {
-            display: flex; justify-content: space-between;
-            padding: 10px 20px; background: rgba(0,0,0,0.8);
-            border-bottom: 2px solid #FFD700;
-        }
-        #game-container { flex: 1; display: flex; justify-content: center; align-items: center; }
-        canvas { border: 3px solid #FFD700; background: rgba(0, 0, 0, 0.9); max-height: 60vh; }
-        .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 10px; background: rgba(0,0,0,0.9); }
-        .btn { background: #FFD700; color: #000; border: none; padding: 15px; font-weight: bold; border-radius: 5px; font-size: 20px; touch-action: manipulation; }
-        #shop-bar { height: 80px; background: #111; border-top: 1px solid #FFD700; display: flex; align-items: center; padding: 0 10px; gap: 20px; overflow-x: auto; }
-        .skin-btn { display: flex; flex-direction: column; align-items: center; }
-        .skin-item { width: 45px; height: 45px; border: 2px solid #444; background-size: cover; border-radius: 5px; }
-        .active .skin-item { border-color: #FFD700; box-shadow: 0 0 10px #FFD700; }
-        .label { font-size: 10px; text-align: center; color: #fff; margin-top: 2px; }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Eagle Tetris - $TALONS Edition</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: #FFD700;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            /* Le fond d'écran dynamique */
+            background-image: url('public/skins/gold.webp');
+            background-size: cover;
+            background-position: center;
+            transition: background-image 0.5s ease-in-out;
+        }
+
+        #game-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Simulation de la grille de Tetris */
+        #tetris-grid {
+            width: 240px;
+            height: 400px;
+            border: 4px solid #FFD700;
+            background: rgba(0, 0, 0, 0.85);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+
+        /* La Boutique en bas */
+        #shop-bar {
+            height: 120px;
+            background: rgba(0, 0, 0, 0.9);
+            border-top: 2px solid #FFD700;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            gap: 15px;
+            overflow-x: auto;
+        }
+
+        .skin-item {
+            min-width: 80px;
+            height: 80px;
+            border: 2px solid #444;
+            border-radius: 8px;
+            background-size: cover;
+            background-position: center;
+            cursor: pointer;
+        }
+
+        .skin-item.active { border-color: #FFD700; box-shadow: 0 0 10px #FFD700; }
+        
+        .label { font-size: 10px; text-align: center; margin-top: 5px; color: #fff; }
+    </style>
 </head>
 <body>
 
-    <div id="ui-top">
-        <div>EAGLE 🦅</div>
-        <div>SCORE: <span id="score">0</span></div>
-    </div>
+    <div id="game-container">
+        <h2 style="position:absolute; top:10px;">EAGLE TETRIS 🦅</h2>
+        <div id="tetris-grid">
+            </div>
+    </div>
 
-    <div id="game-container">
-        <canvas id="tetris"></canvas>
-    </div>
+    <div id="shop-bar">
+        <div onclick="changeSkin('gold.webp', this)">
+            <div class="skin-item active" style="background-image: url('public/skins/gold.webp');"></div>
+            <div class="label">GOLD</div>
+        </div>
+        <div onclick="changeSkin('nebula.jpg', this)">
+            <div class="skin-item" style="background-image: url('public/skins/nebula.jpg');"></div>
+            <div class="label">NEBULA</div>
+        </div>
+    </div>
 
-    <div class="controls">
-        <button class="btn" onclick="p.moveLeft()">←</button>
-        <button class="btn" onclick="p.rotate()">ROT</button>
-        <button class="btn" onclick="p.moveRight()">→</button>
-        <button class="btn" style="grid-column: span 3;" onclick="p.moveDown()">BAS ↓</button>
-    </div>
-
-    <div id="shop-bar">
-        <div onclick="changeSkin('gold.webp', this)" class="skin-btn active">
-            <div class="skin-item" style="background-image: url('public/skins/gold.webp');"></div>
-            <div class="label">GOLD</div>
-        </div>
-        <div onclick="changeSkin('nebula.jpg', this)" class="skin-btn">
-            <div class="skin-item" style="background-image: url('public/skins/nebula.jpg');"></div>
-            <div class="label">NEBULA</div>
-        </div>
-    </div>
-
-    <script>
-        const cvs = document.getElementById("tetris");
-        const ctx = cvs.getContext("2d");
-        const scoreElement = document.getElementById("score");
-        const SQ = 20; const ROW = 20; const COL = 10;
-        cvs.width = COL * SQ; cvs.height = ROW * SQ;
-
-        function drawSquare(x, y, color) {
-            ctx.fillStyle = color;
-            ctx.fillRect(x*SQ, y*SQ, SQ, SQ);
-            ctx.strokeStyle = "rgba(255,255,255,0.1)";
-            ctx.strokeRect(x*SQ, y*SQ, SQ, SQ);
-        }
-
-        let board = [];
-        for(r=0; r<ROW; r++){ board[r]=[]; for(c=0; c<COL; c++){ board[r][c]="black"; }}
-
-        function drawBoard(){
-            for(r=0; r<ROW; r++){ for(c=0; c<COL; c++){ drawSquare(c,r,board[r][c]); }}
-        }
-
-        const PIECES = [
-            [[[1,1,1,1]],[[1],[1],[1],[1]], "cyan"],
-            [[[1,1],[1,1]], "yellow"],
-            [[[0,1,1],[1,1,0]],[[1,0],[1,1],[0,1]], "red"],
-            [[[1,1,0],[0,1,1]],[[0,1],[1,1],[1,0]], "green"],
-            [[[0,1,0],[1,1,1]],[[1,0],[1,1],[1,0]],[[1,1,1],[0,1,0]],[[0,1],[1,1],[0,1]], "purple"],
-            [[[1,1,1],[1,0,0]],[[1,1],[0,1],[0,1]],[[0,0,1],[1,1,1]],[[1,0],[1,0],[1,1]], "orange"],
-            [[[1,1,1],[0,0,1]],[[0,1],[0,1],[1,1]],[[1,0,0],[1,1,1]],[[1,1],[1,0],[1,0]], "blue"]
-        ];
-
-        function Piece(tetromino, color) {
-            this.tetromino = tetromino; this.color = color;
-            this.index = 0; this.active = this.tetromino[this.index];
-            this.x = 3; this.y = -2;
-        }
-
-        Piece.prototype.draw = function(){
-            for(r=0; r<this.active.length; r++){
-                for(c=0; c<this.active[r].length; c++){
-                    if(this.active[r][c]){ drawSquare(this.x+c, this.y+r, this.color); }
-                }
-            }
-        }
-
-        Piece.prototype.collision = function(x,y,piece){
-            for(r=0; r<piece.length; r++){
-                for(c=0; c<piece[r].length; c++){
-                    if(!piece[r][c]) continue;
-                    let newX = this.x + c + x; let newY = this.y + r + y;
-                    if(newX < 0 || newX >= COL || newY >= ROW) return true;
-                    if(newY < 0) continue;
-                    if(board[newY][newX] !== "black") return true;
-                }
-            }
-            return false;
-        }
-
-        Piece.prototype.moveDown = function(){
-            if(!this.collision(0,1,this.active)){ this.y++; }
-            else { this.lock(); p = randomPiece(); }
-            render();
-        }
-        Piece.prototype.moveRight = function(){ if(!this.collision(1,0,this.active)){ this.x++; render(); }}
-        Piece.prototype.moveLeft = function(){ if(!this.collision(-1,0,this.active)){ this.x--; render(); }}
-        Piece.prototype.rotate = function(){
-            let next = this.tetromino[(this.index + 1) % this.tetromino.length];
-            if(!this.collision(0,0,next)){ this.index = (this.index + 1) % this.tetromino.length; this.active = next; render(); }
-        }
-
-        let score = 0;
-        Piece.prototype.lock = function(){
-            for(r=0; r<this.active.length; r++){
-                for(c=0; c<this.active[r].length; c++){
-                    if(!this.active[r][c]) continue;
-                    if(this.y + r < 0) { alert("Game Over"); board = board.map(row => row.fill("black")); score = 0; break; }
-                    board[this.y+r][this.x+c] = this.color;
-                }
-            }
-            for(r=0; r<ROW; r++){
-                if(board[r].every(v => v !== "black")){
-                    board.splice(r, 1); board.unshift(new Array(COL).fill("black"));
-                    score += 10;
-                }
-            }
-            scoreElement.innerHTML = score;
-        }
-
-        function render(){ ctx.clearRect(0,0,cvs.width,cvs.height); drawBoard(); p.draw(); }
-
-        function randomPiece(){
-            let rP = PIECES[Math.floor(Math.random()*PIECES.length)];
-            return new Piece(rP.slice(0,-1), rP[rP.length-1]);
-        }
-
-        let p = randomPiece();
-        function drop(){ p.moveDown(); setTimeout(drop, 1000); }
-        drop();
-
-        function changeSkin(file, el) {
-            // Utilise le chemin exact visible sur ta capture 1000009941.jpg
-            const path = "public/skins/" + file;
-            document.body.style.backgroundImage = "url('" + path + "')";
-            document.querySelectorAll('.skin-btn').forEach(btn => btn.classList.remove('active'));
-            el.classList.add('active');
-        }
-    </script>
+    <script>
+        function changeSkin(fileName, element) {
+            // Change le fond d'écran du body
+            document.body.style.backgroundImage = "url('public/skins/" + fileName + "')";
+            
+            // Met à jour l'apparence des boutons de la boutique
+            document.querySelectorAll('.skin-item').forEach(item => item.classList.remove('active'));
+            element.querySelector('.skin-item').classList.add('active');
+        }
+    </script>
 </body>
 </html>
