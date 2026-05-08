@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Eagle Tetris 🦅📱</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
             background: #1a1a1a;
@@ -28,7 +29,7 @@
         #game-layout {
             display: flex;
             gap: 10px;
-            transform: scale(0.75); /* Réduit la taille pour remonter les boutons */
+            transform: scale(0.75);
             transform-origin: top center;
         }
         #game-container {
@@ -50,7 +51,7 @@
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 10px;
-            margin-top: -30px; /* Remonte les boutons vers le jeu */
+            margin-top: -30px;
             width: 90%;
             max-width: 300px;
         }
@@ -70,7 +71,7 @@
         #btn-left { grid-column: 1; }
         #btn-down { grid-column: 2; }
         #btn-right { grid-column: 3; }
-                #tips-container {
+        #tips-container {
             grid-column: 1 / span 3;
             margin-top: 15px;
             display: flex;
@@ -96,13 +97,13 @@
         <div id="game-container">
             <canvas id="tetris" width="240" height="400"></canvas>
         </div>
-                <div class="stats">
+        <div class="stats">
             <div>Score:<br><span id="score">0</span></div>
             <br>
             <div>Record:<br><span id="high-score">0</span></div>
             <br>
             <div>Lines:<br><span id="lines">0</span></div>
-                </div>
+        </div>
     </div>
 
     <div class="controls">
@@ -110,13 +111,19 @@
         <div id="btn-left" class="touch-btn">←</div>
         <div id="btn-down" class="touch-btn">↓</div>
         <div id="btn-right" class="touch-btn">→</div>
-                <div id="tips-container">
+        <div id="tips-container">
             <a href="https://warpcast.com/eagle-pi" target="_blank" id="tips-btn">
                 🟣 Tip on Farcaster
             </a>
-                </div>
+        </div>
     </div>
+
     <script>
+    // --- CONFIG SUPABASE ---
+    const SUPABASE_URL = "https://rjkyjqmydriagpiatbsr.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqa3lqcW15ZHJpYWdwaWF0YnNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzQ5MTEsImV4cCI6MjA4OTYxMDkxMX0.4-uEBo_SFqfMgPpTuDQRxTYLeUoI_ZMZlwtkBJzK_X0";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
     const canvas = document.getElementById('tetris');
     const context = canvas.getContext('2d');
     const scoreElement = document.getElementById('score');
@@ -263,37 +270,63 @@
         player.matrix = createPiece(pieces[pieces.length * Math.random() | 0]);
         player.pos.y = 0;
         player.pos.x = (arena[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0);
+        
         if (collide(arena, player)) {
+            // --- GAME OVER ---
+            gameRunning = false; // Stop le jeu
+            const finalScore = player.score;
+            
+            // On réinitialise l'arène visuellement
             arena.forEach(row => row.fill(0));
             player.score = 0;
             player.lines = 0;
             updateScore();
+            
+            // Appel de la sauvegarde Supabase
+            if (finalScore > 0) {
+                saveScoreToSupabase(finalScore);
+            } else {
+                alert("Game Over ! Entraîne-toi encore 🦅");
+                location.reload();
+            }
         }
     }
 
-        function updateScore() {
-        // Met à jour le score actuel et les lignes
+    async function saveScoreToSupabase(score) {
+        const username = prompt("BIEN JOUÉ PILOTE ! Ton score : " + score + "\nEntre ton pseudo pour le Hall of Fame :");
+        
+        if (username) {
+            const { data, error } = await supabaseClient
+                .from('leaderboard')
+                .insert([{ username: username, score: score }]);
+
+            if (error) {
+                console.error("Erreur d'envoi :", error.message);
+                alert("Erreur lors de l'enregistrement...");
+            } else {
+                alert("Record enregistré ! Direction le Hall of Fame.");
+                window.location.href = 'hall.html';
+            }
+        } else {
+            location.reload();
+        }
+    }
+
+    function updateScore() {
         document.getElementById('score').innerText = player.score;
         document.getElementById('lines').innerText = player.lines;
-        
-        // Gère le Record (High Score) via le stockage du téléphone
         let savedHighScore = localStorage.getItem('eagleTetrisHiScore') || 0;
-        
         if (player.score > savedHighScore) {
             localStorage.setItem('eagleTetrisHiScore', player.score);
             savedHighScore = player.score;
         }
-        
-        // Affiche le record dans la balise qu'on a créée
         const hiScoreElement = document.getElementById('high-score');
-        if (hiScoreElement) {
-            hiScoreElement.innerText = savedHighScore;
-        }
+        if (hiScoreElement) hiScoreElement.innerText = savedHighScore;
     }
 
     const arena = createArena(12, 20);
     const player = { pos: {x: 0, y: 0}, matrix: null, score: 0, lines: 0 };
-            let dropCounter = 0;
+    let dropCounter = 0;
     let dropInterval = 1000;
     let lastTime = 0;
     let gameRunning = false;
@@ -322,19 +355,17 @@
         }
     }
 
-    // Liaison physique du bouton Start
     const sBtn = document.getElementById('start-btn');
     sBtn.onclick = startGame;
     sBtn.ontouchstart = (e) => { e.preventDefault(); startGame(); };
 
-    // Liaison des contrôles tactiles
     const cmds = {'btn-left':-1, 'btn-right':1, 'btn-down':'d', 'btn-rotate':'r'};
     Object.keys(cmds).forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             const handleAction = (e) => {
                 e.preventDefault();
-                if (!gameRunning) startGame();
+                if (!gameRunning) return; 
                 if (cmds[id] === 'd') playerDrop();
                 else if (cmds[id] === 'r') playerRotate(1);
                 else playerMove(cmds[id]);
@@ -344,8 +375,8 @@
         }
     });
 
-    // Clavier pour le test PC
     document.addEventListener('keydown', event => {
+        if (!gameRunning) return;
         if (event.keyCode === 37) playerMove(-1);
         else if (event.keyCode === 39) playerMove(1);
         else if (event.keyCode === 40) playerDrop();
