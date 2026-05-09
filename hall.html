@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eagle Hall of Fame 🦅</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            background: #1a1a1a;
+            color: gold;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+        table {
+            width: 100%;
+            max-width: 400px;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid gold;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+        }
+        th { color: #ff0d72; text-transform: uppercase; }
+        .btn {
+            margin-top: 30px;
+            background: red;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            font-weight: bold;
+            border-radius: 8px;
+            border: 2px solid white;
+        }
+    </style>
+</head>
+<body>
+    <h1>HALL OF FAME 🦅</h1>
+    <table id="leaderboard-table">
+        <thead>
+            <tr>
+                <th>Pilote</th>
+                <th>Score</th>
+            </tr>
+        </thead>
+        <tbody id="leaderboard-body">
+            </tbody>
+    </table>
+
+    <a href="index.html" class="btn">REJOUER 🎮</a>
+
+    <script>
+        const SUPABASE_URL = "https://rjkyjqmydriagpiatbsr.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqa3lqcW15ZHJpYWdwaWF0YnNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzQ5MTEsImV4cCI6MjA4OTYxMDkxMX0.4-uEBo_SFqfMgPpTuDQRxTYLeUoI_ZMZlwtkBJzK_X0";
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function fetchScores() {
+            const { data, error } = await supabaseClient
+                .from('leaderboard')
+                .select('username, score')
+                .order('score', { ascending: false })
+                .limit(10);
+
+            if (error) {
+                console.error(error);
+            } else {
+                const body = document.getElementById('leaderboard-body');
+                body.innerHTML = data.map(row => `
+                    <tr>
+                        <td>${row.username}</td>
+                        <td>${row.score.toLocaleString()}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        fetchScores();
+    </script>
+</body>
+</html>
