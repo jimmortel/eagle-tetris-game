@@ -61,8 +61,13 @@
     const colors = [null, '#FF0D72', '#0DC2FF', '#0DFF72', '#F538FF', '#FF8E0D', '#FFE138', '#3877FF'];
 
     async function handleEagleStart() {
-        const canPlay = await checkGameAccess('tetris');
-        if (canPlay) startGame();
+        try {
+            const canPlay = await checkGameAccess('tetris');
+            if (canPlay) startGame();
+        } catch (e) {
+            console.error(e);
+            alert("Erreur au démarrage : " + e.message);
+        }
     }
 
     function startGame() {
@@ -95,14 +100,19 @@
         if (collide(arena, player)) handleGameOver();
     }
 
+    // AJOUT DE "async" ICI POUR ÉVITER LE CRASH SYNTAXE JS
     async function handleGameOver() {
         gameRunning = false;
         if (confirm(`GAME OVER ! Score: ${player.score}\n\nREVIVE (Continuer) pour 5 $TALON ?`)) {
-            const provider = new ethers.BrowserProvider(window.ethereum);
-            const signer = await provider.getSigner();
-            if (await executeTalonPayment(signer, 5)) {
-                arena.forEach((row, y) => { if(y < 8) row.fill(0) });
-                gameRunning = true; playerReset(); update(); return;
+            try {
+                const provider = new ethers.BrowserProvider(window.ethereum, "any");
+                const signer = await provider.getSigner();
+                if (await executeTalonPayment(signer, 5)) {
+                    arena.forEach((row, y) => { if(y < 8) row.fill(0) });
+                    gameRunning = true; playerReset(); update(); return;
+                }
+            } catch (err) {
+                console.error(err);
             }
         }
         if (player.score > 0) saveScore(player.score); else location.reload();
