@@ -1,0 +1,17 @@
+{
+  "accountAssociation": {
+    "header": "eyJhbGciOiJFUzI1NksiLCJ0eXAiOiJKV1QifQ", 
+    "payload": "eyJkb21haW4iOiJlYWdsZS10ZXRyaXMtZ2FtZS52ZXJjZWwuYXBwIn0",
+    "signature": "MEYCIQ"
+  },
+  "frame": {
+    "version": "1",
+    "name": "Eagle Tetris",
+    "iconUrl": "https://eagle-tetris-game.vercel.app/icon.png",
+    "homeUrl": "https://eagle-tetris-game.vercel.app/index.html",
+    "imageUrl": "https://eagle-tetris-game.vercel.app/splash.png",
+    "buttonTitle": "Jouer au Tetris 🦅",
+    "splashImageUrl": "https://eagle-tetris-game.vercel.app/splash.png",
+    "splashBackgroundColor": "#1a1a1a"
+  }
+}
