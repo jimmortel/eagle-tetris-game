@@ -11,44 +11,49 @@ const ERC20_ABI = [
 
 /**
  * Vérifie si le portefeuille est connecté et lance le paiement de 10 $TALON
- * @param {string} gameName - Nom du jeu ('tetris')
- * @returns {boolean} - true si le paiement est validé, false sinon
  */
 async function checkGameAccess(gameName) {
+    console.log("Bouton START cliqué, vérification du wallet...");
+    
     if (!window.ethereum) {
-        alert("Portefeuille Web3 non détecté. Si vous jouez depuis Warpcast (Farcaster), utilisez le navigateur Web3 intégré.");
+        alert("Portefeuille Web3 non détecté. Utilisez le navigateur d'un portefeuille crypto ou de Warpcast.");
         return false;
     }
 
     try {
-        // Force la demande de connexion au compte pour réveiller les portefeuilles mobiles
+        // Demande explicite de connexion aux comptes pour les portefeuilles mobiles
         await window.ethereum.request({ method: 'eth_requestAccounts' });
 
-        // Initialisation compatible avec les passerelles mobiles ('any' force Ethers à accepter le réseau injecté)
+        // Initialisation du provider avec tolérance pour les réseaux mobiles
         const provider = new ethers.BrowserProvider(window.ethereum, "any");
         const signer = await provider.getSigner();
         
         alert("Préparation du décollage 🦅\nUne transaction de 10 $TALON va vous être demandée.");
         
-        // Exécute le paiement
+        // Lancement du paiement
         const transactionReussie = await executeTalonPayment(signer, 10);
         return transactionReussie;
 
     } catch (error) {
-        console.error("Erreur d'accès au portefeuille :", error);
-        alert("Impossible de se connecter au portefeuille ou accès refusé. Vérifiez que vous êtes sur le bon réseau.");
+        console.error("Erreur d'accès :", error);
+        alert("Erreur de connexion au portefeuille : " + (error.message || error));
         return false;
     }
 }
 
 /**
- * Gère le transfert de jetons $TALON vers ton adresse Primary Farcaster
+ * Gère le transfert de jetons $TALON
  */
 async function executeTalonPayment(signer, amount) {
     try {
-        const tokenContract = new ethers.Contract(TALON_TOKEN_ADDRESS, ERC20_ABI, signer);
+        // On crée l'instance du contrat proprement à l'intérieur de la fonction
+        const tokenContract = new ethers.Contract(
+            TALON_TOKEN_ADDRESS.toLowerCase(), 
+            ERC20_ABI, 
+            signer
+        );
         
-        // Récupération des décimales du token
+        // Récupération sécurisée des décimales
         const decimals = await tokenContract.decimals();
         const montantEnWei = ethers.parseUnits(amount.toString(), decimals);
         
@@ -61,26 +66,17 @@ async function executeTalonPayment(signer, amount) {
             return false;
         }
 
-        // Envoi de la transaction
+        // Envoi du virement de jetons
         const tx = await tokenContract.transfer(WALLET_DE_RECEPTION, montantEnWei);
+        console.log(`Transaction soumise : ${tx.hash}`);
         
-        // Attente de la validation du bloc
+        // Attente de confirmation
         const receipt = await tx.wait();
-        
-        if (receipt && receipt.status === 1) {
-            return true;
-        } else {
-            alert("La transaction a échoué sur la blockchain.");
-            return false;
-        }
+        return (receipt && receipt.status === 1);
 
     } catch (error) {
         console.error("Erreur durant le paiement :", error);
-        if (error.code === "ACTION_REJECTED" || error.code === 4001 || error.message.includes("rejected")) {
-            alert("Vous avez annulé la transaction.");
-        } else {
-            alert("Erreur lors du transfert de tokens. Êtes-vous bien sur le réseau Base ?");
-        }
+        alert("La transaction a échoué ou a été annulée.");
         return false;
     }
 }
